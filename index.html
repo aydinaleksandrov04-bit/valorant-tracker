@@ -3,126 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VALORANT // AGENT TRACKER</title>
+    <title>VALORANT // GLOBAL TERMINAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@700&family=Roboto+Mono&display=swap" rel="stylesheet">
     <style>
-        :root { --v-red: #ff4655; --v-dark: #0f1923; --v-blue: #111c22; }
+        :root { --v-red: #ff4655; --v-dark: #0f1923; }
         body { 
             background-color: var(--v-dark); 
             color: white; 
             font-family: 'Oswald', sans-serif;
-            background-image: url('https://images.contentstack.io/v3/assets/bltb6530b271fddd0b1/blt72070e3046f890c2/647908f029013c549646487e/MatchHistory_Loading_Screen.jpg');
+            background-image: linear-gradient(rgba(15, 25, 35, 0.7), rgba(15, 25, 35, 0.7)), url('https://images.contentstack.io/v3/assets/bltb6530b271fddd0b1/bltaccc4734282e4e77/649e0a0d4297801323862279/Rank_Up_Loading_Screen.jpg');
             background-size: cover;
             background-attachment: fixed;
-            background-blend-mode: overlay;
+            min-height: 100vh;
         }
-        .glass { background: rgba(15, 25, 35, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 70, 85, 0.2); }
-        .v-red-btn { background: var(--v-red); transition: 0.3s; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%); }
-        .v-red-btn:hover { background: white; color: var(--v-red); transform: scale(1.05); }
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+        .v-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            transition: 0.3s;
+        }
+        .v-input:focus { border-color: var(--v-red); box-shadow: 0 0 10px rgba(255, 70, 85, 0.5); }
+        .neon-text { text-shadow: 0 0 10px rgba(255, 70, 85, 0.8); }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-10">
+<body class="p-4">
 
-    <div class="max-w-5xl mx-auto">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 border-b-2 border-red-500 pb-6">
-            <h1 class="text-5xl font-bold italic tracking-tighter">AGENT <span class="text-[#ff4655]">TRACKER</span></h1>
-            <div class="mt-4 md:mt-0 font-mono text-sm text-red-500 bg-black px-4 py-2 border border-red-500">
-                SYSTEM STATUS: <span id="api-status">CONNECTING...</span>
+    <div class="max-w-6xl mx-auto pt-10">
+        <div class="flex justify-between items-center border-b-4 border-red-600 mb-10 pb-4">
+            <h1 class="text-4xl md:text-6xl uppercase italic font-black tracking-tighter">Global <span class="text-red-500">Tracker</span></h1>
+            <div id="status" class="hidden md:block font-mono text-xs bg-red-600 text-black px-3 py-1 font-bold italic">SYSTEM_ONLINE</div>
+        </div>
+
+        <div class="glass-panel p-6 rounded-lg mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <input id="riotName" type="text" placeholder="RIOT ID (Örn: Joker)" class="v-input p-4 rounded outline-none font-mono">
+                <input id="riotTag" type="text" placeholder="TAG (Örn: TR1)" class="v-input p-4 rounded outline-none font-mono">
+                <select id="region" class="v-input p-4 rounded outline-none font-mono text-red-500 font-bold uppercase">
+                    <option value="eu">Europe (TR/EU)</option>
+                    <option value="na">North America</option>
+                    <option value="ap">Asia Pacific</option>
+                    <option value="kr">Korea</option>
+                    <option value="latam">Latin America</option>
+                    <option value="br">Brazil</option>
+                </select>
+                <button onclick="searchPlayer()" class="bg-red-600 hover:bg-white hover:text-red-600 transition-all font-bold text-xl italic uppercase py-4 shadow-lg">VERİLERİ ÇEK</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="md:col-span-2 flex gap-2">
-                <input id="targetName" type="text" placeholder="Riot ID" class="w-full bg-black border border-gray-700 p-3 outline-none focus:border-red-500 font-mono">
-                <input id="targetTag" type="text" placeholder="TAG" class="w-24 bg-black border border-gray-700 p-3 outline-none focus:border-red-500 font-mono">
-                <button onclick="updateStats()" class="v-red-btn px-8 font-bold text-black">SORGULA</button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="glass p-8 rounded-sm text-center">
-                <div class="relative inline-block mb-4">
-                    <img id="rankIcon" src="https://media.valorant-api.com/competitivetiers/03621f13-43b3-039d-b718-f2a7304c2c12/0/largeicon.png" class="w-32 h-32 mx-auto">
-                    <div id="rankLabel" class="absolute bottom-0 bg-red-600 px-2 py-1 text-xs font-bold w-full">YÜKLENİYOR</div>
+        <div id="dashboard" class="grid grid-cols-1 lg:grid-cols-3 gap-8 opacity-0 transition-opacity duration-500">
+            <div class="glass-panel p-8 rounded-xl text-center border-t-4 border-red-500">
+                <div class="relative w-40 h-40 mx-auto mb-6">
+                    <div class="absolute inset-0 rounded-full border-4 border-red-500 animate-pulse"></div>
+                    <img id="rankImg" src="" class="w-full h-full object-contain p-4">
                 </div>
-                <h2 id="playerName" class="text-3xl font-bold mt-4 italic">PLAYER <span class="text-gray-500 text-xl">#000</span></h2>
+                <h2 id="dispName" class="text-4xl font-bold italic neon-text mb-2">PLAYERNAME</h2>
+                <div id="rankName" class="text-xl text-gray-400 font-mono tracking-widest uppercase">RANK_PENDING</div>
             </div>
 
-            <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="glass p-6 flex flex-col justify-center border-l-4 border-green-500">
-                    <span class="text-gray-400 font-mono text-xs uppercase">Güncel Derece</span>
-                    <span id="rankName" class="text-4xl font-bold">---</span>
+            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-sm">
+                <div class="glass-panel p-6 flex justify-between items-center border-r-4 border-red-500">
+                    <span>GÜNCEL RR:</span>
+                    <span id="rrVal" class="text-3xl font-bold text-red-500">0</span>
                 </div>
-                <div class="glass p-6 flex flex-col justify-center border-l-4 border-yellow-500">
-                    <span class="text-gray-400 font-mono text-xs uppercase">Kazanılan RR</span>
-                    <span id="rankRR" class="text-4xl font-bold">---</span>
+                <div id="lastGameCard" class="glass-panel p-6 flex justify-between items-center">
+                    <span>SON MAÇ:</span>
+                    <span id="matchDiff" class="text-3xl font-bold">---</span>
                 </div>
-                <div class="glass p-6 flex flex-col justify-center border-l-4 border-blue-500">
-                    <span class="text-gray-400 font-mono text-xs uppercase">Son Maç Değişimi</span>
-                    <span id="lastChange" class="text-4xl font-bold">---</span>
+                <div class="glass-panel p-6 flex justify-between items-center border-r-4 border-blue-500">
+                    <span>BÖLGE:</span>
+                    <span id="regionDisp" class="text-3xl font-bold uppercase">---</span>
                 </div>
-                <div class="glass p-6 flex flex-col justify-center border-l-4 border-red-500">
-                    <span class="text-gray-400 font-mono text-xs uppercase">Sunucu</span>
-                    <span id="region" class="text-4xl font-bold uppercase">EU</span>
+                <div class="glass-panel p-6 flex justify-between items-center">
+                    <span>SIRALAMA:</span>
+                    <span id="posDisp" class="text-3xl font-bold">---</span>
                 </div>
             </div>
         </div>
 
-        <footer class="mt-20 text-center font-mono text-xs text-gray-500">
-            DATA PROVIDED BY HENRIKDEV API // NOT AFFILIATED WITH RIOT GAMES
-        </footer>
+        <div id="loader" class="hidden text-center py-20">
+            <div class="inline-block w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-4 font-mono italic">RADYANİT VERİLERİ TOPLANIYOR...</p>
+        </div>
     </div>
 
     <script>
-        // BURAYI KENDİ BİLGİLERİNE GÖRE DÜZENLE (Varsayılan olarak seni açar)
-        const defaultName = "Swoon"; 
-        const defaultTag = "EUW";
+        async function searchPlayer() {
+            const name = document.getElementById('riotName').value;
+            const tag = document.getElementById('riotTag').value;
+            const reg = document.getElementById('region').value;
+            const dash = document.getElementById('dashboard');
+            const loader = document.getElementById('loader');
 
-        async function fetchStats(name, tag) {
-            const statusLabel = document.getElementById('api-status');
-            statusLabel.innerText = "FETCHING...";
-            statusLabel.className = "mt-4 md:mt-0 font-mono text-sm text-yellow-500 bg-black px-4 py-2 border border-yellow-500";
+            if(!name || !tag) return alert("Lütfen isim ve tag girin!");
+
+            dash.style.opacity = "0";
+            loader.classList.remove('hidden');
 
             try {
-                // MMR Verisi Çekme
-                const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr/eu/${name}/${tag}`);
+                const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr/${reg}/${encodeURIComponent(name)}/${encodeURIComponent(tag)}`);
                 const result = await response.json();
 
                 if(result.status === 200) {
-                    const data = result.data;
+                    const d = result.data;
+                    document.getElementById('dispName').innerText = `${d.name}#${d.tag}`;
+                    document.getElementById('rankName').innerText = d.currenttierpatched || "Unranked";
+                    document.getElementById('rrVal').innerText = d.ranking_in_tier;
+                    document.getElementById('regionDisp').innerText = reg;
+                    document.getElementById('posDisp').innerText = d.ranking_in_tier > 0 ? `#${d.ranking_in_tier}` : "---";
                     
-                    // Arayüzü Güncelle
-                    document.getElementById('playerName').innerHTML = `${data.name} <span class="text-gray-500 text-xl">#${data.tag}</span>`;
-                    document.getElementById('rankName').innerText = data.currenttierpatched || "Unranked";
-                    document.getElementById('rankRR').innerText = (data.ranking_in_tier || "0") + " RR";
-                    document.getElementById('rankLabel').innerText = data.currenttierpatched ? "ACTIVE" : "NO RANK";
-                    document.getElementById('lastChange').innerText = (data.mmr_change_to_last_game >= 0 ? "+" : "") + data.mmr_change_to_last_game;
+                    // Son Maç Değişimi
+                    const diff = d.mmr_change_to_last_game;
+                    const matchEl = document.getElementById('matchDiff');
+                    matchEl.innerText = (diff >= 0 ? "+" : "") + diff;
+                    matchEl.className = `text-3xl font-bold ${diff >= 0 ? 'text-green-500' : 'text-red-500'}`;
                     
-                    // Renk Değişimi
-                    document.getElementById('lastChange').className = data.mmr_change_to_last_game >= 0 ? "text-4xl font-bold text-green-500" : "text-4xl font-bold text-red-500";
+                    // Rank Görseli
+                    document.getElementById('rankImg').src = `https://media.valorant-api.com/competitivetiers/03621f13-43b3-039d-b718-f2a7304c2c12/${d.currenttier}/largeicon.png`;
 
-                    statusLabel.innerText = "ONLINE";
-                    statusLabel.className = "mt-4 md:mt-0 font-mono text-sm text-green-500 bg-black px-4 py-2 border border-green-500";
+                    dash.style.opacity = "1";
                 } else {
-                    statusLabel.innerText = "USER NOT FOUND";
-                    statusLabel.className = "mt-4 md:mt-0 font-mono text-sm text-red-500 bg-black px-4 py-2 border border-red-500";
+                    alert("Oyuncu bulunamadı! İpucu: Profilin gizli olabilir (tracker.gg'den açmalısın) veya bölge yanlıştır.");
                 }
-            } catch (error) {
-                statusLabel.innerText = "API ERROR";
-                console.error(error);
+            } catch (err) {
+                alert("API Hatası! Lütfen sonra tekrar dene.");
+            } finally {
+                loader.classList.add('hidden');
             }
         }
-
-        // Manuel Sorgulama Fonksiyonu
-        function updateStats() {
-            const n = document.getElementById('targetName').value;
-            const t = document.getElementById('targetTag').value;
-            if(n && t) fetchStats(n, t);
-        }
-
-        // Sayfa ilk açıldığında varsayılanı yükle
-        window.onload = () => fetchStats(defaultName, defaultTag);
     </script>
 </body>
 </html>
